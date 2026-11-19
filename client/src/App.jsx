@@ -89,13 +89,7 @@ function App() {
                     {sorted ? "Ordem original" : "Ordenar por ataque"}
                   </button>
                 </div>
- 
-                <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Procurar pelo nome…"
-                />
- 
+                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="A procurar…"/>
                 {visible.length === 0 ? (
                   <p>Nenhuma carta corresponde.</p>
                 ) : (
