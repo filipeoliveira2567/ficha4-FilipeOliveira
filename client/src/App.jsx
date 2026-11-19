@@ -33,7 +33,7 @@ function App() {
 
   let visible = cards
     .filter((card) => filter === "Todas" || card.type === filter)
-    .filter((card) => card.name.toLowerCase().includes(search.toLowerCase()));
+    .filter((card) => (card.name || "").toLowerCase().includes(search.toLowerCase()));
 
   if (sorted) {
     visible = [...visible].sort((a, b) => b.attack - a.attack);
@@ -49,6 +49,47 @@ function App() {
     } catch
     {
       console.log("Erro a buscar a carta");
+    }
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+
+    const form = event.currentTarget;
+
+    const cartaNova = {
+      name: form.elements.nome.value,
+      type: form.elements.type.value,
+      attack: Number(form.elements.attack.value),
+      defense: Number(form.elements.defense.value)
+    };
+    console.log("Dados a enviar:", cartaNova);
+
+    try {
+      const res = await fetch("http://localhost:3000/api/cartas", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(cartaNova)
+      });
+
+      const data = await res.json();
+
+      console.log("Resposta da API:", data);
+
+      if (!res.ok) {
+        throw new Error(JSON.stringify(data));
+      }
+
+      setCards((prevCards) => [...prevCards, data.carta]);
+
+      form.reset();
+
+      alert("Carta guardada com sucesso!");
+    } catch(error) {
+      console.error("Erro:", error);
+      alert("Erro ao guardar: " + error.message);
     }
   }
 
@@ -70,11 +111,9 @@ function App() {
             <>
               <main>
                 <h1>A minha coleção</h1>
- 
                 <p>
                   Tenho {cards.length} cartas · a mostrar {visible.length}
                 </p>
- 
                 <div>
                   <button onClick={() => setFilter("Todas")}>
                     Todas
@@ -89,7 +128,7 @@ function App() {
                     {sorted ? "Ordem original" : "Ordenar por ataque"}
                   </button>
                 </div>
-                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="A procurar…"/>
+                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Procurar"/>
                 {visible.length === 0 ? (
                   <p>Nenhuma carta corresponde.</p>
                 ) : (
@@ -112,6 +151,19 @@ function App() {
                     ataque {randomCard.attack}
                   </p>
                 )}
+
+                <h2>Criar Carta</h2>
+
+                <form onSubmit={handleSubmit}>
+                  <input type="text" name="nome" id="nome" placeholder="Nome aqui" required/>
+                  <select name="tipo" id="type" required>
+                    <option value="Criatura">Criatura</option>
+                    <option value="Feitiço">Feitiço</option>
+                  </select>
+                  <input type="number" name="attack" id="attack" placeholder="Ataque" required/>
+                  <input type="number" name="defense" id="defense" placeholder="Defesa" required/>
+                  <button type="submit">Guardar carta</button>
+                </form>
               </main>
             </>
           )}

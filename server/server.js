@@ -1,15 +1,22 @@
 const express = require("express");
+const cors = require("cors");
+const fs = require("fs");
+const path = require("path");
 
 const app = express();
 const PORT = 3000;
 
-const cards = [
-  { name: "Dragão de Cobalto", type: "Criatura", attack: 7, defense: 5 },
-  { name: "Guardiã das Marés", type: "Criatura", attack: 4, defense: 8 },
-  { name: "Rito de Ferro", type: "Feitiço", attack: 0, defense: 0 },
-  { name: "Sentinela de Âmbar", type: "Criatura", attack: 6, defense: 6 },
-  { name: "Eco do Vazio", type: "Feitiço", attack: 0, defense: 0 },
-];
+const filePath = path.join(__dirname, "cartas.json");
+const data = JSON.parse(fs.readFileSync(filePath, "utf8"));
+let cards = data.cards;
+
+app.use(cors({
+  origin: "http://localhost:5173"
+}));
+
+app.use(express.json());
+
+
 
 function page(title, body) {
   return `<!DOCTYPE html>
@@ -39,7 +46,6 @@ app.get("/", (req, res) => {
 });
 
 app.get("/api/cartas", (req, res) => {
-  res.set("Access-Control-Allow-Origin","http://localhost:5173")
   res.json(cards)
 });
 
@@ -52,7 +58,7 @@ app.get("/sobre", (req, res) => {
 
 app.get("/cartas", (req, res) => {
   const items = cards
-    .map((card) => `<li><b>${card.name}</b> — ${card.type}, ataque ${card.attack}</li>`)
+    .map((card) => `<li><b>${card.name}</b> — ${card.type}, ataque ${card.attack}, defesa ${card.defense}</li>`)
     .join("");
 
   res.send(page("Cartas", `<ul>${items}</ul>`));
@@ -68,6 +74,12 @@ app.get("/cartas/aleatoria", (req, res) => {
   ));
 });
 
+app.get("/api/cartas/aleatoria", (req, res) => {
+  const card = cards[Math.floor(Math.random() * cards.length)];
+  res.set("Access-Control-Allow-Origin", "http://localhost:5173");
+  res.json(card);
+});
+
 app.get("/agora", (req, res) => {
   const now = new Date().toLocaleString("pt-PT", {
     dateStyle: "long",
@@ -77,7 +89,36 @@ app.get("/agora", (req, res) => {
   res.send(page("Agora", `<p>Este pedido foi respondido às <b>${now}</b>.</p>`));
 });
 
+app.post("/api/cartas", (req, res) => {
 
+  const cartaNova = req.body;
+
+  if (!cartaNova.name ||
+      !cartaNova.type ||
+      cartaNova.attack === undefined ||
+      cartaNova.defense === undefined
+  ) {
+    return res.status(400).json({
+      mensagem: "Preenche os campos da carta."
+    })
+  }
+
+
+  cards.push(cartaNova);
+
+  fs.writeFileSync(
+    filePath,
+    JSON.stringify({ cards: cards }, null, 2),
+    "utf8"
+  );
+
+  console.log("Carta atuais:", cards);
+
+  res.status(201).json({
+    mensagem: "Carta adicionada!",
+    carta: cartaNova
+  });
+});
 
 app.use((req, res) => {
   res.status(404).send(page(
